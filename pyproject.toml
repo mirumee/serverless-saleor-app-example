@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "lambda-saleor-app"
+version = "0.1.0"
+description = ""
+authors = ["Artur Smęt <artur.smet@mirumee.com>"]
+readme = "README.md"
+packages = [{include = "lambda_saleor_app"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.89.1"
+mangum = "^0.17.0"
+structlog = "^22.3.0"
+
+
+[tool.poetry.group.dev.dependencies]
+uvicorn = "^0.20.0"
+boto3 = "^1.26.69"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
