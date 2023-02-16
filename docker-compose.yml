@@ -13,7 +13,6 @@ services:
     volumes:
       - ./src/lambda_saleor_app:/app/src/lambda_saleor_app
     environment: 
-      - APP_ID=demo.lambda.app
       - SALEOR_DOMAIN=mcabra.eu.saleor.cloud
       - SSM_ENDPOINT=http://localstack:4566
       - SSM_REGION=eu-west-1

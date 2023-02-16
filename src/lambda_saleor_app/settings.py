@@ -30,4 +30,6 @@ class Settings(BaseSettings):
         return f"/{values['app_id']}"
 
 
-settings = Settings()
+settings = Settings(
+    app_id="demo.lambda.app",
+)
