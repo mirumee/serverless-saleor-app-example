@@ -77,7 +77,18 @@ Manifest URL is `https://<your API gateway URL>/manifest.json`
 ![image](https://user-images.githubusercontent.com/1754812/218416975-edd53df2-791b-4421-8302-f7b054220a51.png)
 
 
-Now once you click to your app name in the Dashboard, you'll see content rendered by the `/app` endpoint (the one defined as `appUrl` in manifest).
+Now once you click on your app name in the Dashboard, you'll see content rendered by the `/app` endpoint (the one defined as `appUrl` in the manifest).
+
+
+# Development
+
+Using Localstack you can set up a local parameter store mock. It's provided in the attached docker-compose. 
+
+The easiest way to work on your app is to use Docker and Docker Compose, the following app with run your application with uvicorn, run Localstack in the background and reload when you make changes to your code.
+
+```
+docker-compose run --rm --service-ports app
+```
 
 
 Happy coding!

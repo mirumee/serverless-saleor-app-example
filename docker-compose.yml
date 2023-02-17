@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args: 
+        INSTALL_DEV: "true"
+    command: python -m lambda_saleor_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src/lambda_saleor_app:/app/src/lambda_saleor_app
+    environment: 
+      - SALEOR_DOMAIN=mcabra.eu.saleor.cloud
+      - SSM_ENDPOINT=http://localstack:4566
+      - SSM_REGION=eu-west-1
+      - SSM_AWS_ACCESS_KEY_ID=test
+      - SSM_AWS_SECRET_ACCESS_KEY=test
+    depends_on:
+      - "localstack"
+
+
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "127.0.0.1:4566:4566"            # LocalStack Gateway
+      - "127.0.0.1:4510-4559:4510-4559"  # external services port range
+    environment:
+      - DEBUG=${DEBUG-}
+      - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR-}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "./localstack:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"

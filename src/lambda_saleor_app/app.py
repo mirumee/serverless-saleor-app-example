@@ -1,8 +1,11 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from mangum import Mangum
 
-from lambda_saleor_app import config
+from lambda_saleor_app.settings import settings
 from lambda_saleor_app.utils import logging, parameter_store
+from lambda_saleor_app.utils.obfuscation import obfuscate
+from lambda_saleor_app.schemas import InstallAuthToken
+from lambda_saleor_app.deps import get_host, verify_webhook_signature
 
 logger = logging.logger
 
@@ -11,19 +14,12 @@ app = FastAPI(debug=True)
 
 
 @app.get("/manifest.json")
-async def manifest(request: Request):
+async def manifest(request_host: str = Depends(get_host)):
     """
     Endpoint used to establish permissions and webhook subscriptions
     """
-    # Fetches host from API Gateway
-    try:
-        request_host = request.scope["aws.event"]["requestContext"]["domainName"]
-    except KeyError:
-        # Fallback to Host header
-        request_host = request.headers["host"]
-
     return {
-        "id": config.APP_ID,
+        "id": settings.app_id,
         "version": "1.0.0",
         "name": "My serverless App",
         "about": "My serverless App for extending Saleor.",
@@ -48,27 +44,23 @@ async def manifest(request: Request):
 
 
 @app.post("/register")
-async def register(request: Request):
+async def register(auth_token: InstallAuthToken):
     """
     Endpoint that handles final step of App installation - persisting the Saleor Token
     """
-    body = await request.json()
-    logger.debug("Register request", body=body)
-    auth_token = body.get("auth_token")
-    if auth_token:
-        logger.info("Persisting Saleor Token")
-        parameter_store.write_to_ssm(key="SaleorAPIKey", value=auth_token)
+    logger.debug("Register request", body=obfuscate(auth_token.auth_token))
+    logger.info("Persisting Saleor Token")
+    parameter_store.write_to_ssm(key=settings.ssm_saleor_app_auth_token_key, value=auth_token.auth_token)
     return "OK"
 
 
 @app.post("/api/webhooks/order-event")
-async def webhook(request: Request):
+async def webhook(request: Request, __ = Depends(verify_webhook_signature)):
     """
     Public endpoint for receiving a webhook from Saleor
     """
     payload = await request.json()
     logger.info("Webhook request", body=payload, headers=request.headers)
-    # TODO: Verify webhook signature using Saleor-Domain and Saleor-Signature headers
     return payload
 
 
@@ -82,15 +74,9 @@ async def dashboard_app(request: Request):
         "saleor_domain": request.query_params.get("domain"),
         "saleor_api_url": request.query_params.get("SaleorApiUrl"),
         "stored_token": parameter_store.get_from_ssm(
-            "SaleorAPIKey"
+            settings.ssm_saleor_app_auth_token_key
         ),  # FIXME: Demo only, insecure
     }
 
 
 handler = Mangum(app)
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("main:app", port=8000, log_level="info")
