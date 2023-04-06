@@ -73,6 +73,7 @@ async def dashboard_app(request: Request):
         "message": "Hello from Lambda",
         "saleor_domain": request.query_params.get("domain"),
         "saleor_api_url": request.query_params.get("SaleorApiUrl"),
+        "some_secret_text": settings.some_secret_text,
         "stored_token": parameter_store.get_from_ssm(
             settings.ssm_saleor_app_auth_token_key
         ),  # FIXME: Demo only, insecure

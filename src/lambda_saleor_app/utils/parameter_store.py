@@ -5,15 +5,13 @@ import boto3
 from botocore.client import Config
 
 from lambda_saleor_app.settings import settings
+from lambda_saleor_app.utils import logging
+
+logger = logging.logger
 
 # While running on AWS Lambda, credentials are present via IAM Role
 ssm = boto3.client(
     "ssm",
-    config=Config(connect_timeout=settings.ssm_timeout, read_timeout=settings.ssm_timeout),
-    endpoint_url=settings.ssm_endpoint,
-    aws_access_key_id=settings.aws_access_key_id,
-    aws_secret_access_key=settings.aws_secret_access_key,
-    region_name=settings.aws_region,
 )
 
 
@@ -38,14 +36,17 @@ def param_store_cache(key: str, prefix=settings.ssm_secret_prefix) -> str:
 
 
 def get_from_ssm(key: str, prefix=settings.ssm_secret_prefix) -> str:
+    logger.debug("get_from_ssm", key=key, prefix=prefix)
     value = param_store_cache(key, prefix)
     if value:
+        logger.debug("get_from_ssm() got from cache")
         return value
     key_with_prefix = f"{prefix}/{key}"
     try:
         parameter = ssm.get_parameter(Name=key_with_prefix, WithDecryption=True)
     except ssm.exceptions.ParameterNotFound:
         return None
+    logger.debug("get_from_ssm() got from SSM")
     return parameter["Parameter"]["Value"]
 
 
