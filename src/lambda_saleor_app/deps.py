@@ -30,7 +30,6 @@ async def get_saleor_signature(
     return saleor_signature
 
 
-
 async def get_saleor_user(
     saleor_domain: str = Depends(get_saleor_domain),
     saleor_token: str = Header(..., alias="Saleor-Token"),
