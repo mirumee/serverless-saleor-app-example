@@ -22,6 +22,6 @@ def setup(ctx: context.Context):
 
 def handler(event, ctx: context.Context):
     settings, log = setup(ctx)
-    log.debug("lambda event", lambda_event=event)
-    handler = Mangum(app)
-    handler(event=event, context=ctx)
+    log.debug("starting handling event", lambda_event=event)
+    hndl = Mangum(app)
+    return hndl(event=event, context=ctx)

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     Container for runtime configuration of the application.
     """
 
+    log_level: str = "info"
     debug: bool = False
     app_id: str
     saleor_domain: str
@@ -35,6 +36,13 @@ class Settings(BaseSettings):
         if value:
             return value
         return f"/{values['app_id']}/"
+
+    @validator("log_level")
+    def level_to_py(cls, value: str):
+        value = value.upper()
+        if value not in ("INFO", "ERROR", "DEBUG", "CRITICAL"):
+            raise ValueError(f"Invalid log level {value!r}")
+        return value
 
 
 settings = Settings(app_id="demo.lambda.app")
