@@ -24,6 +24,5 @@ RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install ; else poetry i
 # COPY .flake8 alembic.ini docker-entrypoint.sh /app/
 
 EXPOSE 8080
-# ENTRYPOINT ["/bin/bash", "docker-entrypoint.sh"]
 
 CMD python -m lambda_saleor_app
