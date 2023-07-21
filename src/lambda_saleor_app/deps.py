@@ -1,5 +1,5 @@
 from fastapi import Request, Depends, Header
-from saleor_sdk.crypto.utils import decode_webook_payload, decode_jwt
+from saleor_sdk.crypto.utils import decode_webook_payload
 from saleor_sdk.crypto.exceptions import JWKSKeyMissing
 
 from lambda_saleor_app.utils.jwks import get_jwkset
@@ -30,37 +30,13 @@ async def get_saleor_signature(
     return saleor_signature
 
 
-async def get_saleor_user(
-    saleor_domain: str = Depends(get_saleor_domain),
-    saleor_token: str = Header(..., alias="Saleor-Token"),
-):
-    saleor_jwks = await get_jwkset()
-    max_attempts = 1
-
-    # TODO: fix DRY with verify_webhook_signature
-    while max_attempts:
-        try:
-            return decode_jwt(
-                jwt=saleor_token,
-                jwks=saleor_jwks,
-            )
-        except JWKSKeyMissing as exc:
-            if max_attempts:
-                saleor_jwks = await get_jwkset()
-                max_attempts -= 1
-            else:
-                raise
-
-
 async def verify_webhook_signature(
     request: Request,
     saleor_domain: str = Depends(get_saleor_domain),
     jws: str = Depends(get_saleor_signature),
 ):
-    saleor_jwks = await get_jwkset()
-
+    saleor_jwks = await get_jwkset(request.app.state.secrets)
     max_attempts = 1
-
     while max_attempts:
         try:
             return decode_webook_payload(
@@ -68,9 +44,9 @@ async def verify_webhook_signature(
                 jwks=saleor_jwks,
                 webhook_payload=await request.body(),
             )
-        except JWKSKeyMissing as exc:
+        except JWKSKeyMissing:
             if max_attempts:
-                saleor_jwks = await get_jwkset()
+                saleor_jwks = await get_jwkset(request.app.state.secrets)
                 max_attempts -= 1
             else:
                 raise

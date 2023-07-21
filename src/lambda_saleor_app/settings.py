@@ -1,4 +1,5 @@
 from typing import Optional
+from posixpath import join
 
 from pydantic import BaseSettings, validator
 
@@ -35,7 +36,7 @@ class Settings(BaseSettings):
     def set_secret_prefix(cls, value, values):
         if value:
             return value
-        return f"/{values['app_id']}/"
+        return join("/", values["app_id"]) + "/"
 
     @validator("log_level")
     def level_to_py(cls, value: str):

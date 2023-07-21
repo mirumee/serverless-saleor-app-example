@@ -1,19 +1,17 @@
 import structlog
 
-from fastapi import FastAPI, Request, Depends
+from fastapi import Request, Depends, APIRouter
 
-from lambda_saleor_app.secrets import secrets
 from lambda_saleor_app.settings import settings
-from lambda_saleor_app.utils.obfuscation import obfuscate
 from lambda_saleor_app.schemas import InstallAuthToken
 from lambda_saleor_app.deps import get_host, verify_webhook_signature
 
 logger = structlog.get_logger(__name__)
 
-app = FastAPI(debug=settings.debug)
+router = APIRouter()
 
 
-@app.get("/manifest.json")
+@router.get("/manifest.json")
 async def manifest(request_host: str = Depends(get_host)):
     """
     Endpoint used to establish permissions and webhook subscriptions
@@ -43,30 +41,29 @@ async def manifest(request_host: str = Depends(get_host)):
     }
 
 
-@app.post("/register")
-async def register(auth_token: InstallAuthToken):
+@router.post("/register")
+async def register(request: Request, auth_token: InstallAuthToken):
     """
     Endpoint that handles final step of App installation - persisting the Saleor Token
     """
-    logger.debug("Register request", body=obfuscate(auth_token.auth_token))
     logger.info("Persisting Saleor Token")
-    secrets[
-        settings.secret_prefix + settings.saleor_app_auth_token_key
+    request.app.state.secrets[
+        settings.saleor_app_auth_token_key
     ] = auth_token.auth_token
     return "OK"
 
 
-@app.post("/api/webhooks/order-event")
+@router.post("/api/webhooks/order-event")
 async def webhook(request: Request, __=Depends(verify_webhook_signature)):
     """
     Public endpoint for receiving a webhook from Saleor
     """
     payload = await request.json()
-    logger.info("Webhook request", body=payload, headers=request.headers)
+    logger.debug("Webhook request", body=payload, headers=request.headers)
     return payload
 
 
-@app.get("/app")
+@router.get("/app")
 async def dashboard_app(request: Request):
     """
     This endpoint is responsible for displaying the dashboard view of embedded app
@@ -75,8 +72,5 @@ async def dashboard_app(request: Request):
         "message": "Hello from Lambda",
         "saleor_domain": request.query_params.get("domain"),
         "saleor_api_url": request.query_params.get("SaleorApiUrl"),
-        "stored_token": secrets[
-            settings.secret_prefix + settings.saleor_app_auth_token_key
-        ],
-        # FIXME: Demo only, insecure
+        "stored_token": request.app.state.secrets[settings.saleor_app_auth_token_key],
     }
